@@ -1,10 +1,52 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title>Untitled Document</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
 </head>
-
 <body>
+    <div id="app">
+        <div ref="txt">
+            {{ txt }}
+        </div>
+        <button v-on:click="change1">change1</button>
+        <button @click="change2">change2</button>
+    </div>
 </body>
+<script src="../js/vue.js"></script>
+<script>
+new Vue({
+    el: '#app',
+    data: {
+        txt: 'hello'
+    },
+    methods: {
+        change1() {
+            this.txt = 'world'
+            console.log('sync: ', this.$refs.txt.innerText)
+            Vue.nextTick(function() {
+                console.log('nextTick: ', this.$refs.txt.innerText)
+                this.$nextTick().then(() => {
+                    console.log('nextTick nest: ', this.$refs.txt.innerText)
+                })
+            }, this)
+            this.$nextTick().then(() => {
+                console.log('nextTick promise: ', this.$refs.txt.innerText)
+            })
+        },
+        change2() {
+            this.$nextTick(() => {
+                console.log('nextTick: ', this.$refs.txt.innerText)
+            })
+            this.txt = 'world'
+            console.log('sync: ', this.$refs.txt.innerText)
+            this.$nextTick().then(() => {
+                console.log('nextTick promise: ', this.$refs.txt.innerText)
+            })
+        }
+    }
+})
+</script>
 </html>

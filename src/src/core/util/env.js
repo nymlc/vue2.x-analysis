@@ -54,6 +54,9 @@ export const devtools = inBrowser && window.__VUE_DEVTOOLS_GLOBAL_HOOK__
 
 /* istanbul ignore next */
 export function isNative (Ctor: any): boolean {
+  /**
+   * 例如Promise.toString()：function Promise() { [native code] }
+   */
   return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
 }
 

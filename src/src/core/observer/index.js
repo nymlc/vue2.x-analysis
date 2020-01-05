@@ -43,14 +43,21 @@ export class Observer {
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
+    // def __ob__属性到Observer实例对象上，用于复用
+    // def的话防止在比如observeArray里__ob__被遍历到observe
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
+      // 这里是把Array.__proto__做了下处理，用于数组push等操作时的响应式
       const augment = hasProto
         ? protoAugment
         : copyAugment
       augment(value, arrayMethods, arrayKeys)
+      // 简单的遍历observe
       this.observeArray(value)
     } else {
+      // 简单遍历defineProperty
+      // 和数组遍历的处理不一样，这个是属性，所以defineProperty，数组的话每项均当做独立对象处理
+      // 俩者区别在于有没有自己的dep，
       this.walk(value)
     }
   }
@@ -111,6 +118,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     return
   }
   let ob: Observer | void
+  // 若是该值上有__ob__属性，且是Observer实例，那么说明该值已经是观察过了
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
@@ -119,9 +127,13 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     (Array.isArray(value) || isPlainObject(value)) &&
     Object.isExtensible(value) &&
     !value._isVue
-  ) {
+  ) { // 若是没有observe过且不是服务端渲染，值是数组或者对象且可扩展还不是Vue实例
+    // 服务器渲染禁用了响应式数据，因为实际渲染需要确定性也就在服务器上预取了数据，这就意味着我们渲染时程序已经解析完成了状态，响应式也就多余了
+    // Vue实例也禁用响应式，它的属性能改的（例如data）已经observe过了
     ob = new Observer(value)
   }
+  // 若是RootData（即data本身），那么就会计数
+  // eg：一个Hello组件(data引用的同一个对象)，每用一次组件vmCount就会++
   if (asRootData && ob) {
     ob.vmCount++
   }
@@ -138,6 +150,7 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
+  // 一个属性一个dep
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
@@ -151,7 +164,7 @@ export function defineReactive (
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }
-
+  // 因为val可能是对象，所以需要深度观测
   let childOb = !shallow && observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,

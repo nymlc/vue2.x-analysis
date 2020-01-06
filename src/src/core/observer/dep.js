@@ -9,6 +9,7 @@ let uid = 0
  * A dep is an observable that can have multiple
  * directives subscribing to it.
  */
+// 这个其实是消息中心，但是它只能服务于一个属性（defineReactive）、一个对象（Observer）
 export default class Dep {
   static target: ?Watcher;
   id: number;

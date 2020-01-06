@@ -41,6 +41,7 @@ export class Observer {
 
   constructor (value: any) {
     this.value = value
+    // 这个dep为对象或者数组服务
     this.dep = new Dep()
     this.vmCount = 0
     // def __ob__属性到Observer实例对象上，用于复用
@@ -57,7 +58,7 @@ export class Observer {
     } else {
       // 简单遍历defineProperty
       // 和数组遍历的处理不一样，这个是属性，所以defineProperty，数组的话每项均当做独立对象处理
-      // 俩者区别在于有没有自己的dep，
+      // 俩者区别在于dep一个为属性服务一个为对象服务
       this.walk(value)
     }
   }
@@ -159,20 +160,38 @@ export function defineReactive (
   }
 
   // cater for pre-defined getter/setters
+  // 缓存getter和setter
   const getter = property && property.get
   const setter = property && property.set
+  /**
+   * 1. 若是arguments.length === 3，也就是传入了val，自然不用取值
+   * 2. 若是setter在的话，那么也得被观测，因为要是没被观测，那么defineProperty后重新定义了get、set，重新赋值的话新的值也会被观测（set里逻辑），这就前后违背了
+   * 3. 若是getter在setter不在的话，则getter只是返回某个值，不需要观测，观测的话就会触发原本未知的getter，引发问题
+   */
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }
-  // 因为val可能是对象，所以需要深度观测
+  // 因为val可能是对象，所以需要深度观测，返回的是子观测实例
+  /**
+   * const data = {
+        a: {
+            b: 1
+        }
+    }
+    观测data，那么data闭包引用的childOb是data.__ob__，data.a的childOb是data.a.__ob__
+    因为observe(new Observer(data)) => Observer(def(data, __ob__))
+   */
   let childOb = !shallow && observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter () {
+      // 通过之前缓存的getter求值，没有getter的话就返回val
       const value = getter ? getter.call(obj) : val
+      // 若是Dep.target（Watcher）存在，那么需要收集依赖通过当前属性的dep
       if (Dep.target) {
         dep.depend()
+        // 要是childOb存在的话，也就是设置了新属性，因为
         if (childOb) {
           childOb.dep.depend()
           if (Array.isArray(value)) {

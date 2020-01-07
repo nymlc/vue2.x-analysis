@@ -25,8 +25,11 @@ methodsToPatch.forEach(function (method) {
   // cache original method
   const original = arrayProto[method]
   def(arrayMethods, method, function mutator (...args) {
+    // 通过原有的方法获取到结果
     const result = original.apply(this, args)
+    // 拿到Observer对象实例，通过这个可以取到dep，也就可以通知变化
     const ob = this.__ob__
+    // push、unshift、splice都有添加新元素，所以需要取到新元素，然后观测
     let inserted
     switch (method) {
       case 'push':

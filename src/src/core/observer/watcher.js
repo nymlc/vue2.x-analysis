@@ -160,7 +160,7 @@ export default class Watcher {
     // 就是更新下当前的订阅列表
     let tmp = this.depIds
     this.depIds = this.newDepIds
-    this.newDepIds = tmp
+    this.newDepIds = tmp // 这里得需要，不然this.depIds也会被clear，下同
     this.newDepIds.clear()
 
     tmp = this.deps

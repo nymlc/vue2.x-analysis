@@ -68,6 +68,8 @@ export default class Watcher {
     this.id = ++uid // uid for batching
     this.active = true
     this.dirty = this.computed // for computed watchers
+    // 当前的watcher被哪些dep收集了以及它们的id
+    // deps、depIds是当前的   newDeps、newDepIds是页面重新渲染之后的情况（初始时为空，cleanupDeps导致的），也就是重新收集
     this.deps = []
     this.newDeps = []
     this.depIds = new Set()
@@ -131,9 +133,11 @@ export default class Watcher {
   addDep (dep: Dep) {
     const id = dep.id
     if (!this.newDepIds.has(id)) {
+      // 本轮收集中还没订阅这个dep
       this.newDepIds.add(id)
       this.newDeps.push(dep)
       if (!this.depIds.has(id)) {
+        // 还没有订阅这个需要订阅的dep
         dep.addSub(this)
       }
     }
@@ -144,16 +148,21 @@ export default class Watcher {
    */
   cleanupDeps () {
     let i = this.deps.length
+    // 循环遍历当前订阅过的deps
     while (i--) {
       const dep = this.deps[i]
       if (!this.newDepIds.has(dep.id)) {
+        // 若是新的不订阅这个曾经订阅过得dep就得删除
+        // 这样子完成了dep的取消订阅
         dep.removeSub(this)
       }
     }
+    // 就是更新下当前的订阅列表
     let tmp = this.depIds
     this.depIds = this.newDepIds
     this.newDepIds = tmp
     this.newDepIds.clear()
+
     tmp = this.deps
     this.deps = this.newDeps
     this.newDeps = tmp

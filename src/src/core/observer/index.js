@@ -42,6 +42,8 @@ export class Observer {
   constructor (value: any) {
     this.value = value
     // 这个dep为对象或者数组服务
+    // 在添加新属性的时候因为没有被转成响应式，那么已经注册的监听的依赖就不能被收集到属性对应的dep
+    // 所以需要添加到这个属性所在的对象的dep，即此dep，也就是childOb.dep.depend()
     this.dep = new Dep()
     this.vmCount = 0
     // def __ob__属性到Observer实例对象上，用于复用
@@ -191,7 +193,15 @@ export function defineReactive (
       // 若是Dep.target（Watcher）存在，那么需要收集依赖通过当前属性的dep
       if (Dep.target) {
         dep.depend()
-        // 要是childOb存在的话，也就是设置了新属性，因为
+        // 要是childOb存在的话，就把依赖放进这个对象dep里
+        /**
+          a: {
+              b: 1,
+              __ob__
+          }
+          this.$watch(this.a, 'c', () => {})
+        */
+        // 这里很关键，就比如这个$watch，依赖于a.c，但是c的dep不在（还没有响应式），那么就只能把它放进a的dep里
         if (childOb) {
           childOb.dep.depend()
           if (Array.isArray(value)) {
@@ -227,22 +237,29 @@ export function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
+// 添加新属性使用，用到了对象对应的dep
 export function set (target: Array<any> | Object, key: any, val: any): any {
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
+  // 若是数组的话那么直接使用splice，因为这个Array.splice已经被拦截了
   if (Array.isArray(target) && isValidArrayIndex(key)) {
+    // 处理数组长度，因为可能添加的位置大于数组长度
     target.length = Math.max(target.length, key)
     target.splice(key, 1, val)
     return val
   }
+  // 如果已经存在了这个key，那么就是响应式，直接设置即可
   if (key in target && !(key in Object.prototype)) {
     target[key] = val
     return val
   }
   const ob = (target: any).__ob__
+  // 到这里就是新增属性
+  // 首先不能是Vue实例，可能出现覆盖情况
+  // 其次不能是根data，根data的dep是在state.js initData方法里的observe生成的，就没有机会收集依赖
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -250,11 +267,22 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     )
     return val
   }
+  // 不存在ob的话那么就是这个target就不是响应式的，设置值就行了
   if (!ob) {
     target[key] = val
     return val
   }
+  /**
+   * a: {
+        b: 1,
+        __ob__
+    }
+   */
+  // 比如给a设置一个新属性c，那么ob.value其实就是a对象
+  // 因为这个__ob__是new Observer(a)生成的，也就是value就是a
+  // 所以给a的c属性设置成响应式
   defineReactive(ob.value, key, val)
+  // 也就是a.__ob__.notify()，派发更新a对象收集到的订阅，也就会访问a.c，自然而然的把依赖重新添加到c属性对应的闭包dep里
   ob.dep.notify()
   return val
 }
@@ -280,13 +308,17 @@ export function del (target: Array<any> | Object, key: any) {
     )
     return
   }
+  // 若是要删粗的属性不存在就直接return
   if (!hasOwn(target, key)) {
     return
   }
+  // 删除掉这个属性
   delete target[key]
+  // 若不是响应式，就直接返回无需通知
   if (!ob) {
     return
   }
+  // 否则得通知
   ob.dep.notify()
 }
 
@@ -297,6 +329,7 @@ export function del (target: Array<any> | Object, key: any) {
 function dependArray (value: Array<any>) {
   for (let e, i = 0, l = value.length; i < l; i++) {
     e = value[i]
+    // 把数组每一项所对应的dep收集下依赖
     e && e.__ob__ && e.__ob__.dep.depend()
     if (Array.isArray(e)) {
       dependArray(e)

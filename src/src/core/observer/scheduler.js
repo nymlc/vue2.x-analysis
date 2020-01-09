@@ -58,7 +58,7 @@ function flushSchedulerQueue () {
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
-  // 
+  // 这里没有缓存queue.length是因为这个queue还没遍历完可能就改变了
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index]
     // 这个就是执行before函数，就是beforeUpdated钩子

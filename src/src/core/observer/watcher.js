@@ -31,7 +31,7 @@ export default class Watcher {
   user: boolean;
   computed: boolean;
   sync: boolean;
-  dirty: boolean;
+  dirty: boolean; // 这个是给computed使用的，false意为已经计算了
   active: boolean;
   dep: Dep;
   deps: Array<Dep>;
@@ -50,6 +50,7 @@ export default class Watcher {
     isRenderWatcher?: boolean
   ) {
     this.vm = vm
+    // 若是渲染watcher，则赋值在_watcher上
     if (isRenderWatcher) {
       vm._watcher = this
     }
@@ -196,6 +197,7 @@ export default class Watcher {
     } else if (this.sync) {
       this.run()
     } else {
+      // 这里是个优化
       queueWatcher(this)
     }
   }
@@ -204,14 +206,19 @@ export default class Watcher {
    * Scheduler job interface.
    * Will be called by the scheduler.
    */
+  // 这个才是真正更新变化操作的地方，也是Scheduler调用的接口
   run () {
+    // 判断激活的话才更新
     if (this.active) {
       this.getAndInvoke(this.cb)
     }
   }
-
+  // 获取新的值以及执行回调
   getAndInvoke (cb: Function) {
     const value = this.get()
+    // 判断新旧值是否一致
+    // 关键还在于是否是对象，因为对象引用一样但是值可能不一样
+    // 深度监听也是
     if (
       value !== this.value ||
       // Deep watchers and watchers on Object/Arrays should fire even
@@ -222,10 +229,15 @@ export default class Watcher {
     ) {
       // set new value
       const oldValue = this.value
+      // 设置新的值到value
       this.value = value
+      // 计算属性是惰性求值，代表已经求过值了
       this.dirty = false
+      // 用户watch的话
       if (this.user) {
+        // 回调不可知，可能会报错，所以try/catch
         try {
+          // $watch回调里的两新旧参数值这里来的
           cb.call(this.vm, value, oldValue)
         } catch (e) {
           handleError(e, this.vm, `callback for watcher "${this.expression}"`)
@@ -261,14 +273,20 @@ export default class Watcher {
    * Remove self from all dependencies' subscriber list.
    */
   teardown () {
+    // 是否激活，默认激活，取消监听就置为false
     if (this.active) {
       // remove self from vm's watcher list
       // this is a somewhat expensive operation so we skip it
       // if the vm is being destroyed.
       if (!this.vm._isBeingDestroyed) {
+        // 若是组件没被销毁，那么得将当前观察者remove
+        // _watchers这个在initState时初始化到当前实例
+        // 实例化Watcher时会push到这个数组，也就是存着当前实例所有的watcher
+        // 这个用于在销毁组件实例时循环调用teardown方法来取消监听
         remove(this.vm._watchers, this)
       }
       let i = this.deps.length
+      // 循环遍历收集了此watcher的dep，将此watcher从订阅者列表移除
       while (i--) {
         this.deps[i].removeSub(this)
       }

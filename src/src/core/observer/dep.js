@@ -2,7 +2,7 @@
 
 import type Watcher from './watcher'
 import { remove } from '../util/index'
-
+// 每个dep的id
 let uid = 0
 
 /**
@@ -17,6 +17,7 @@ export default class Dep {
 
   constructor () {
     this.id = uid++
+    // 存储订阅此消息的所有订阅者，方便通知更新的时候遍历派发更新
     this.subs = []
   }
 
@@ -46,14 +47,16 @@ export default class Dep {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
+// 当前处理的watcher
 Dep.target = null
+// 当前处理的watcher只能有一个，所以要是还没处理完当前的又设置Dep.target就得把后来的入栈
 const targetStack = []
 
 export function pushTarget (_target: ?Watcher) {
   if (Dep.target) targetStack.push(Dep.target)
   Dep.target = _target
 }
-
+// 完了之后出栈就能拿到后来的
 export function popTarget () {
   Dep.target = targetStack.pop()
 }

@@ -28,13 +28,14 @@ export default class Watcher {
   cb: Function;
   id: number;
   deep: boolean;
-  user: boolean;
+  user: boolean; // 用于判断是否是用户设置的watcher
   computed: boolean;
   sync: boolean;
   dirty: boolean;
   active: boolean;
   dep: Dep;
-  deps: Array<Dep>;
+  deps: Array<Dep>;     // 当前的watcher被哪些dep收集了以及它们的id
+                        // deps、depIds是当前的   newDeps、newDepIds是页面重新渲染之后的情况（初始时为空，cleanupDeps导致的），也就是重新收集
   newDeps: Array<Dep>;
   depIds: SimpleSet;
   newDepIds: SimpleSet;
@@ -74,13 +75,16 @@ export default class Watcher {
     this.newDeps = []
     this.depIds = new Set()
     this.newDepIds = new Set()
+    // 传入的取值表达式，用于报错提示
     this.expression = process.env.NODE_ENV !== 'production'
       ? expOrFn.toString()
       : ''
     // parse expression for getter
+    // 将expression转成getter
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
+      // 将'a.b.c'转成取值函数
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
         this.getter = function () {}
@@ -104,13 +108,16 @@ export default class Watcher {
    * Evaluate the getter, and re-collect dependencies.
    */
   get () {
+    // 设置Dep.target
     pushTarget(this)
     let value
     const vm = this.vm
     try {
+      // 触发getter用于收集依赖
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
+        // 用户设置的话那么就会报错具体的语句
         handleError(e, vm, `getter for watcher "${this.expression}"`)
       } else {
         throw e
@@ -121,7 +128,9 @@ export default class Watcher {
       if (this.deep) {
         traverse(value)
       }
+      // 当前watcher完了之后就得置空(pop)，轮到新的watcher
       popTarget()
+      // 清理下订阅，比如之前订阅了a、b，现在订阅了a、c，那么得把b给清掉就这么个性能优化
       this.cleanupDeps()
     }
     return value

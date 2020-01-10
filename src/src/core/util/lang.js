@@ -25,6 +25,7 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
  */
 const bailRE = /[^\w.$]/
 export function parsePath (path: string): any {
+  // 不是字母、数字、下划线、点号和$符号就return
   if (bailRE.test(path)) {
     return
   }

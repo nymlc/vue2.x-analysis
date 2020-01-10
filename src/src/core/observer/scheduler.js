@@ -29,6 +29,9 @@ let index = 0
 function resetSchedulerState () {
   index = queue.length = activatedChildren.length = 0
   has = {}
+  // 若是开发环境，那么就每轮更新执行之后置空这个无限循环检测标志
+  // 这是因为下面检测也是开发环境下检测的
+  // 也就是默认生存环境下不会出现这种糟糕的代码
   if (process.env.NODE_ENV !== 'production') {
     circular = {}
   }
@@ -91,13 +94,15 @@ function flushSchedulerQueue () {
   }
 
   // keep copies of post queues before resetting state
+  // 在重置数据之前浅拷贝下数据
   const activatedQueue = activatedChildren.slice()
   const updatedQueue = queue.slice()
-
+  // 重置数据
   resetSchedulerState()
 
   // call component updated and activated hooks
   callActivatedHooks(activatedQueue)
+  // 执行updated钩子
   callUpdatedHooks(updatedQueue)
 
   // devtool hook

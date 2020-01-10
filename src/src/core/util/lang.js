@@ -11,6 +11,7 @@ export function isReserved (str: string): boolean {
 /**
  * Define a property.
  */
+// 主要是配置是否可枚举
 export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
   Object.defineProperty(obj, key, {
     value: val,

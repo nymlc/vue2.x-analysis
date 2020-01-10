@@ -127,6 +127,7 @@ export default class Watcher {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
       if (this.deep) {
+        // 若是deep观测，那么久递归读取子属性值，已达到收集子属性依赖
         traverse(value)
       }
       // 当前watcher完了之后就得置空(pop)，轮到新的watcher

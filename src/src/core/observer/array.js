@@ -40,8 +40,10 @@ methodsToPatch.forEach(function (method) {
         inserted = args.slice(2)
         break
     }
+    // 观测新增的数据
     if (inserted) ob.observeArray(inserted)
     // notify change
+    // 通知该对象收集的订阅者需要更新了
     ob.dep.notify()
     return result
   })

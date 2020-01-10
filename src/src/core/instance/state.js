@@ -345,7 +345,9 @@ export function stateMixin (Vue: Class<Component>) {
     options = options || {}
     options.user = true
     const watcher = new Watcher(vm, expOrFn, cb, options)
+    // 立即执行回调
     if (options.immediate) {
+      // watcher.value是新值，这种情况没有旧值
       cb.call(vm, watcher.value)
     }
     return function unwatchFn () {

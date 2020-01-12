@@ -55,6 +55,7 @@ export function toRawType (value: any): string {
  * Strict object type check. Only returns true
  * for plain JavaScript objects.
  */
+// 判断给定变量是否是纯对象
 export function isPlainObject (obj: any): boolean {
   return _toString.call(obj) === '[object Object]'
 }
@@ -66,8 +67,10 @@ export function isRegExp (v: any): boolean {
 /**
  * Check if val is a valid array index.
  */
+// 是否是有效数组索引
 export function isValidArrayIndex (val: any): boolean {
   const n = parseFloat(String(val))
+  // 索引得大于等于0且是个整数并且是非无限的
   return n >= 0 && Math.floor(n) === n && isFinite(val)
 }
 
@@ -95,6 +98,10 @@ export function toNumber (val: string): number | string {
  * Make a map and return a function for checking if a key
  * is in that map.
  */
+// 就是根据字符串创建一个map返回一个函数，用于判断是否包含传入的参数
+// export const isVowel = makeMap('a,e,i,o,u', true)
+// isVowel('e')  // true
+// isVowel('b')  // false
 export function makeMap (
   str: string,
   expectsLowerCase?: boolean
@@ -112,6 +119,8 @@ export function makeMap (
 /**
  * Check if a tag is a built-in tag.
  */
+// 检查是否是内置标签
+// 检测是不是slot、component
 export const isBuiltInTag = makeMap('slot,component', true)
 
 /**
@@ -134,6 +143,7 @@ export function remove (arr: Array<any>, item: any): Array<any> | void {
 /**
  * Check whether the object has the property.
  */
+// 检查对象 obj 是否具有属性值key
 const hasOwnProperty = Object.prototype.hasOwnProperty
 export function hasOwn (obj: Object | Array<*>, key: string): boolean {
   return hasOwnProperty.call(obj, key)
@@ -153,6 +163,7 @@ export function cached<F: Function> (fn: F): F {
 /**
  * Camelize a hyphen-delimited string.
  */
+// 连字符转驼峰，a-b转成aB
 const camelizeRE = /-(\w)/g
 export const camelize = cached((str: string): string => {
   return str.replace(camelizeRE, (_, c) => c ? c.toUpperCase() : '')
@@ -161,6 +172,7 @@ export const camelize = cached((str: string): string => {
 /**
  * Capitalize a string.
  */
+// 高阶函数，备忘模式
 export const capitalize = cached((str: string): string => {
   return str.charAt(0).toUpperCase() + str.slice(1)
 })
@@ -207,6 +219,7 @@ export const bind = Function.prototype.bind
 /**
  * Convert an Array-like object to a real Array.
  */
+// 将类数组对象转换为数组
 export function toArray (list: any, start?: number): Array<any> {
   start = start || 0
   let i = list.length - start
@@ -220,6 +233,7 @@ export function toArray (list: any, start?: number): Array<any> {
 /**
  * Mix properties into target object.
  */
+// 混合对象扩展属性
 export function extend (to: Object, _from: ?Object): Object {
   for (const key in _from) {
     to[key] = _from[key]

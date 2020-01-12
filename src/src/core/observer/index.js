@@ -291,11 +291,13 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
  * Delete a property and trigger change if necessary.
  */
 export function del (target: Array<any> | Object, key: any) {
+  // 防止传入非对象参数
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {
     warn(`Cannot delete reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
+  // 要是数组的话，那么直接调用splice即可，因为这个被拦截处理过了
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.splice(key, 1)
     return

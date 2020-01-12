@@ -44,24 +44,35 @@ export function proxy (target: Object, sourceKey: string, key: string) {
   }
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
-
+// 初始化状态
 export function initState (vm: Component) {
+  // 这个用于存储当前组件实例所有的订阅者
   vm._watchers = []
   const opts = vm.$options
+  // 初始化props、methods、data、computed、watch
+  // 为什么这个顺序呢其实有点讲究。
+  // props肯定最前面，因为它没有依赖
+  // methods得第二，因为它可能被data、computed依赖
+  // data得第三，因为它被computed依赖
+  // computed第四
+  // watch第五，因为它可能依赖computed
   if (opts.props) initProps(vm, opts.props)
   if (opts.methods) initMethods(vm, opts.methods)
   if (opts.data) {
     initData(vm)
   } else {
+    // 没有传data的话也得整个空的
     observe(vm._data = {}, true /* asRootData */)
   }
   if (opts.computed) initComputed(vm, opts.computed)
+  // 火狐Object.prototype有watch，所以得判定
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch)
   }
 }
-
+// 初始化props
 function initProps (vm: Component, propsOptions: Object) {
+  // 获取propsData，这玩意主要用于测试，看文档即可
   const propsData = vm.$options.propsData || {}
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
@@ -277,10 +288,12 @@ function initMethods (vm: Component, methods: Object) {
     vm[key] = methods[key] == null ? noop : bind(methods[key], vm)
   }
 }
-
+// options.watch 接受{ [key: string]: string | Function | Object | Array }
 function initWatch (vm: Component, watch: Object) {
   for (const key in watch) {
+    // 取到这个val，它可能是string | Function | Object | Array
     const handler = watch[key]
+    // 若是数组就遍历取得子项交由createWatcher处理
     if (Array.isArray(handler)) {
       for (let i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i])
@@ -291,22 +304,39 @@ function initWatch (vm: Component, watch: Object) {
   }
 }
 
+/**
+ * 创建Watcher实例
+ *
+ * @param {Component} vm
+ * @param {(string | Function)} expOrFn
+ * @param {*} handler 接受string | Function | Object
+ * @param {Object} [options]
+ * @returns
+ */
 function createWatcher (
   vm: Component,
   expOrFn: string | Function,
   handler: any,
   options?: Object
 ) {
+  // 若是对象那么就是
+  /**
+   d: {
+      handler: 'someMethod',
+      immediate: true
+    }
+   */
   if (isPlainObject(handler)) {
     options = handler
     handler = handler.handler
   }
+  // 若是handler字符串，那么就是methods方法名
   if (typeof handler === 'string') {
     handler = vm[handler]
   }
   return vm.$watch(expOrFn, handler, options)
 }
-
+// 混入state状态方法
 export function stateMixin (Vue: Class<Component>) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
@@ -316,6 +346,7 @@ export function stateMixin (Vue: Class<Component>) {
   const propsDef = {}
   propsDef.get = function () { return this._props }
   if (process.env.NODE_ENV !== 'production') {
+    // 开发者环境下就给$data、$props设置setter，就是防止被改
     dataDef.set = function (newData: Object) {
       warn(
         'Avoid replacing instance root $data. ' +
@@ -327,29 +358,35 @@ export function stateMixin (Vue: Class<Component>) {
       warn(`$props is readonly.`, this)
     }
   }
+  // this.$data是对this._data的代理
+  // this.$props是对this._props的代理
   Object.defineProperty(Vue.prototype, '$data', dataDef)
   Object.defineProperty(Vue.prototype, '$props', propsDef)
-
+  // this.$set、this.$delete
   Vue.prototype.$set = set
   Vue.prototype.$delete = del
-
+// this.$watch，这个就是处理下参数，让我们调用更方便
   Vue.prototype.$watch = function (
     expOrFn: string | Function,
     cb: any,
     options?: Object
   ): Function {
     const vm: Component = this
+    // 若是对象
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
     }
     options = options || {}
+    // this.$watch必然是用户设置的
     options.user = true
+    // 其实就是new Watcher
     const watcher = new Watcher(vm, expOrFn, cb, options)
     // 立即执行回调
     if (options.immediate) {
       // watcher.value是新值，这种情况没有旧值
       cb.call(vm, watcher.value)
     }
+    // this.$watch会返回一个函数，执行了就可以取消监听，就是这么来的
     return function unwatchFn () {
       watcher.teardown()
     }

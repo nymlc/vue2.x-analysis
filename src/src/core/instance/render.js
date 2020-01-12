@@ -52,6 +52,18 @@ export function initRender (vm: Component) {
 
 export function renderMixin (Vue: Class<Component>) {
   // install runtime convenience helpers
+  // 混入一些渲染模板使用到的方法，就像如下的_s其实是toString、_v === createTextVNode
+/**
+(function anonymous() {
+    with(this) {
+        return _c('div', {
+            attrs: {
+                "id": "app"
+            }
+        }, [_c('div', [_v("\n            " + _s(txt1) + "\n        ")])])
+    }
+})
+ */
   installRenderHelpers(Vue.prototype)
 
   Vue.prototype.$nextTick = function (fn: Function) {

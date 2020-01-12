@@ -35,10 +35,13 @@ if (inBrowser) {
 // this needs to be lazy-evaled because vue may be required before
 // vue-server-renderer can set VUE_ENV
 let _isServer
+// 用于判断是否是服务端渲染
 export const isServerRendering = () => {
+  // 没有定义才设置，性能优化而已
   if (_isServer === undefined) {
     /* istanbul ignore if */
     if (!inBrowser && !inWeex && typeof global !== 'undefined') {
+      // 若是不在浏览器也不在Weex而且global有值就看看是不是注入了（src/platforms/web/entry-server-renderer.js  process.env.VUE_ENV = 'server'）
       // detect presence of vue-server-renderer and avoid
       // Webpack shimming the process
       _isServer = global['process'].env.VUE_ENV === 'server'

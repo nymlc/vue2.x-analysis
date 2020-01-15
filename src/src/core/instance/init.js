@@ -16,6 +16,7 @@ export function initMixin (Vue: Class<Component>) {
   Vue.prototype._init = function (options?: Object) {
     const vm: Component = this
     // a uid
+    // Vue实例对象的唯一标志
     vm._uid = uid++
 
     let startTag, endTag
@@ -27,8 +28,10 @@ export function initMixin (Vue: Class<Component>) {
     }
 
     // a flag to avoid this being observed
+    // 这个用于判断对象是否是Vue实例对象，比如在观测对象的时候不能观测Vue实例
     vm._isVue = true
     // merge options
+    // 创建组件传入的option在内部（src/core/vdom/create-component.js）就会加入_isComponent属性且为true
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the

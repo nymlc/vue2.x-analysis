@@ -98,18 +98,38 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
   if (Ctor.super) {
     //ø 若是子类的话，这里很绕，来个例子
     /**
-      const Child = Vue.extend({
-          template: '<p>1</p>'
-      })
-      Vue.mixin({
-          template: '<p>2</p>'
-      })
-      Child.mixin({
-          template: '<p>3</p>'
-      })
-      new Child({}).$mount('#app')
+    const fn1 = function fn1() {
+        console.log('fn1')
+    }
+    const fn2 = function fn2() {
+        console.log('fn2')
+    }
+    const fn3 = function fn3() {
+        console.log('fn3')
+    }
+    const fn4 = function fn4() {
+        console.log('fn4')
+    }
+    const Parent = Vue.extend({
+        template: '<p>1</p>',
+        created: [fn1]
+    })
+    const Child = Parent.extend({
+        template: '<p>2</p>',
+        created: [fn2]
+    })
+    Vue.mixin({
+        template: '<p>3</p>',
+        created: [fn3]
+    })
+    Child.mixin({
+        template: '<p>4</p>',
+        created: [fn4]
+    })
+    new Child({}).$mount('#app')
      */
-    // 不算下面modifiedOptions这里的调用的话，这里的Ctor就是Child，Ctor.super就是Vue
+    //ø 不算下面modifiedOptions这里的调用的话，这里的Ctor就是Child，Ctor.super就是Parent
+    // 也就是当前Parent.options应该的值
     /*
      superOptions当然就是合并之后的
      {
@@ -117,21 +137,25 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
         directives: {},
         filters: {},
         _base: function () {},
-        template: "<p>2</p>"
+        template: "<p>1</p>",
+        created: [fn3, fn1]
     }
     */
-    // cachedSuperOptions在extend.js我们可以找到Sub.superOptions = Super.options，也就是cachedSuperOptions就是Vue.options当时的值
-    // 为什么是当时呢，这是因为Vue.extend之后Vue.mixin把Vue.options的引用指向别的地址
-    /*
-     恩，也就是cachedSuperOptions就是
-     {
-          components: {},
-          directives: {},
-          filters: {},
-          _base: function () {}
-      }
-     */
-    const superOptions = resolveConstructorOptions(Ctor.super)
+   const superOptions = resolveConstructorOptions(Ctor.super)
+  // cachedSuperOptions在extend.js我们可以找到Sub.superOptions = Super.options，也就是cachedSuperOptions就是Parent.options当时的值
+  // 为什么是当时呢，这是因为Vue.extend之后Parent.mixin可以把Parent.options的引用指向别的地址
+  // 当时还未执行到Vue.mixin，所以除了Vue上默认的options也只是混入了.extend传入的参数
+   /*
+    恩，也就是cachedSuperOptions就是
+    {
+         components: {},
+         directives: {},
+         filters: {},
+         _base: function () {},
+         template: "<p>1</p>",
+         created: [fn1]
+     }
+    */
     const cachedSuperOptions = Ctor.superOptions
     //ø 俩个必然不一样的，其实不管内容如何，就是Vue.mixin({})，这俩值也不一样，因为Vue.options的引用变了（看Vue.mixin源码即可知）
     if (superOptions !== cachedSuperOptions) {
@@ -140,14 +164,20 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
       // 既然不一样了自然是要修正
       Ctor.superOptions = superOptions
       // check if there are any late-modified/attached options (#4976)
-      // 
+      // 获取非父类继承来的options
       const modifiedOptions = resolveModifiedOptions(Ctor)
       // update base extend options
+      // 把新增的合并到Ctor.extendOptions，即Child.extendOptions
       if (modifiedOptions) {
         extend(Ctor.extendOptions, modifiedOptions)
       }
+      // 以上可知superOptions是Parent.options的值，这个相对Child而言就是父类需要遗传自己的值
+      // Ctor.extendOptions就是自己需要合并的值
+      // 根据这俩值得到新选项赋值给options和Ctor.options
       options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions)
       if (options.name) {
+        // 这里源于.extend里会判断是否传入了name，若有的话会给自己添加到components
+        // 这里是修正下引用，懒得找哪里导致这个引用有问题了
         options.components[options.name] = Ctor
       }
     }
@@ -160,25 +190,28 @@ function resolveModifiedOptions (Ctor: Class<Component>): ?Object {
   // 承接resolveConstructorOptions里的栗子
   /**
    如今的（Child.mixin之后的）Child.options
+   没有fn3是因为Vue.mixin执行靠后了
   {
     components: {},
     directives: {},
     filters: {},
     _base: function () {},
-    template: "<p>3</p>"
+    template: "<p4</p>",
+    created: [fn1, fn2, fn4]
   }
   */
   const latest = Ctor.options
-  // Vue.extend传的参数   { template: '<p>1</p>' }
+  // 创建Ctor（Child）时调用.extend传的参数   { template: '<p>2</p>', created: [fn2] }
   const extended = Ctor.extendOptions
   /**
-  Vue.extend之后合并的options
+  创建Ctor（Child）时调用.extend之后合并的options
   {
     components: {},
     directives: {},
     filters: {},
     _base: function () {},
-    template: "<p>1</p>"
+    template: "<p>2</p>",
+    created: [fn1, fn2]
   }
   */
   const sealed = Ctor.sealedOptions
@@ -209,17 +242,23 @@ function dedupe (latest, extended, sealed) {
   if (Array.isArray(latest)) {
     // 因为是数组，那么一般都是生命周期钩子函数，去重就是保证不要重复触发
     const res = []
+    // 承接上个栗子
+    // [fn1, fn2]
     sealed = Array.isArray(sealed) ? sealed : [sealed]
+    // [fn2]
     extended = Array.isArray(extended) ? extended : [extended]
+    // latest为[fn1, fn2, fn4]
     for (let i = 0; i < latest.length; i++) {
       // push original options and not sealed options to exclude duplicated options
-      //ø ①extended有，就代表是.extend时传入的参数，是新增的
-      //ø ②sealed没有，就代表这个是.extend之后mixin混入的，也是新增的
+      //ø ①extended有，就代表是.extend时传入的参数，是新增的，不是父类继承来的
+      //ø ②sealed没有，就代表这个是.extend之后mixin混入的，也是新增的，不是父类继承来的
       // 就像这个Parent传入的fn4，是父类持有的，就不计入，之后统一contact
       if (extended.indexOf(latest[i]) >= 0 || sealed.indexOf(latest[i]) < 0) {
         res.push(latest[i])
       }
     }
+    //ø 也就是这俩个不是父类继承来的（一个是.extend传参混入，一个是.mixin混入）
+    // [fn2, fn4]
     return res
   } else {
     return latest

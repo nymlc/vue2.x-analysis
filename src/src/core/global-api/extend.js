@@ -71,8 +71,12 @@ export function initExtend (Vue: GlobalAPI) {
     // keep a reference to the super options at extension time.
     // later at instantiation we can check if Super's options have
     // been updated.
+    // 父级的options 
     Sub.superOptions = Super.options
+    // 调用Vue.extend时传的参数
     Sub.extendOptions = extendOptions
+    // Sub合并之后的options，这里取了数据副本，防止被破坏（若是引用一致的话， 比如紧接的Sub.mixin就会坏了Sub.options也坏了Sub.sealedOptions）
+    // 这个可以用于判断extend之后有没有新增什么options
     Sub.sealedOptions = extend({}, Sub.options)
 
     // cache constructor

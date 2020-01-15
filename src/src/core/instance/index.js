@@ -6,6 +6,7 @@ import { lifecycleMixin } from './lifecycle'
 import { warn } from '../util/index'
 
 function Vue (options) {
+  // 开发模式下判断Vue是不是new调用
   if (process.env.NODE_ENV !== 'production' &&
     !(this instanceof Vue)
   ) {

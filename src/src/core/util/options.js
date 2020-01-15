@@ -541,7 +541,8 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
  */
 
 /**
- *合并选项
+ *合并选项，传入的参数不会被修改，只是通过俩参数返回一个新选项
+ *内部会通过规范化选项、根据不同的选项选用不同的策略合并
  *
  * @export
  * @param {Object} parent 被合并的数据，比如Vue.options
@@ -570,7 +571,7 @@ export function mergeOptions (
   normalizeDirectives(child)
   const extendsFrom = child.extends
   if (extendsFrom) {
-    // extends事对象或者函数，那么就是简单地混入到parent
+    // extends是对象或者函数，那么就是简单地混入到parent
     parent = mergeOptions(parent, extendsFrom, vm)
   }
   if (child.mixins) {

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Vue.extend、Vue.mixin、extends、mixins区别</title>
+</head>
+<body>
+    <div id="app">
+        <div ref="txt">
+            {{ txt }}
+        </div>
+    </div>
+</body>
+<script src="../js/vue.js"></script>
+<script>
+    const fn1 = function fn1() {
+        console.log('fn1')
+    }
+    const fn2 = function fn2() {
+        console.log('fn2')
+    }
+    const fn3 = function fn3() {
+        console.log('fn3')
+    }
+    const fn4 = function fn4() {
+        console.log('fn4')
+    }
+    Vue.mixin({
+        template: '<p>1</p>',
+        created: [fn1]
+    })
+    const Child = Vue.extend({
+        template: '<p>2</p>',
+        created: [fn2]
+    })
+    new Child({
+        extends: {
+            template: '<p>3</p>',
+            created: [fn3]
+        },
+        mixins: [{
+            template: '<p>4</p>',
+            created: [fn4]
+        }]
+    }).$mount('#app')
+
+</script>
+</html>

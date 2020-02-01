@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>initProxy</title>
+</head>
+<body>
+    <div id="app">
+        <div>
+            {{ _txt }}
+        </div>
+    </div>
+</body>
+<script src="../js/vue.js"></script>
+<script>
+    window._txt = 100
+    window.ln = new Vue({
+        data: {
+            txt: 1
+        }
+    }).$mount('#app')
+
+</script>
+</html>

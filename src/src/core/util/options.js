@@ -78,7 +78,7 @@ function mergeData (to: Object, from: ?Object): Object {
     toVal = to[key]
     fromVal = from[key]
     if (!hasOwn(to, key)) {
-      // 如果parent有不在to对象上么有的属性就设置给to
+      // 如果parent有在to对象上么有的属性就设置给to
       set(to, key, fromVal)
     } else if (isPlainObject(toVal) && isPlainObject(fromVal)) {
       // 如果to值是纯对象且from值也是纯对象，这个属性俩个都有就递归
@@ -101,11 +101,11 @@ export function mergeDataOrFn (
   vm?: Component
 ): ?Function {
   if (!vm) {
-    // 子组件过来的
+    // 非new创建实例过来的
     // in a Vue.extend merge, both should be functions
     //ø 这里有说选项是在调用 Vue.extend 函数时进行合并处理的话，此时父子 data 选项都应该是函数
   
-    // 子组件没有data的话就返回父组件data  eg: Vue.extend({})
+    // child没有data的话就返回parent data  eg: Vue.extend({})
     // 若是Vue.extend({})，那么 mergeOptions(Vue.options, {})，也就是执行不到data的策略函数(Vue.options没有data)
     /**
      * 若是如此
@@ -117,7 +117,7 @@ export function mergeDataOrFn (
     if (!childVal) {
       return parentVal
     }
-    //ø 要是这俩返回了，因为是子组件，是只能是函数，所以initData里执行 data.call(vm, vm)，所以还是传入了vm 
+    //ø 要是这俩返回了，因为是非new创建实例，所以只能是函数，所以initData里执行 data.call(vm, vm)，所以还是传入了vm 
     if (!parentVal) {
       return childVal
     }
@@ -155,7 +155,7 @@ export function mergeDataOrFn (
       )
     }
   } else {
-    // 非子组件
+    // new创建实例
     // this._init  (mergeOptions(Vue.options, options, vm))  =>  mergeOptions(parent, child, vm)  =>  strats.data(parent.data, child.data, vm)  =>  mergeDataOrFn(Vue.options.data, options.data, vm)
     //ø 首先这里值会被赋值给 mergeOptions 里的options，然后赋值给vm.$options
     return function mergedInstanceDataFn () {
@@ -188,9 +188,11 @@ strats.data = function (
   childVal: any,
   vm?: Component
 ): ?Function {
-  // 没有vm，处理的是子组件
+  // 没有vm，处理的是非new创建实例
   if (!vm) {
-    // 若子组件的data(childVal)是不函数就给个警告，返回父组件data
+    // 若非new创建实例的data(childVal)不是函数就给个警告，返回parent data
+    //ø 在子组件（子组件注册调用.extend）data必须是函数的原因在于此
+    // 其实子组件data是函数那么每次返回都是新的数据对象，可以防止被干扰
     if (childVal && typeof childVal !== 'function') {
       process.env.NODE_ENV !== 'production' && warn(
         'The "data" option should be a function ' +
@@ -546,8 +548,8 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
  *
  * @export
  * @param {Object} parent 被合并的数据，比如Vue.options
- * @param {Object} child 要合并的数据，比如new Vue()传的options
- * @param {Component} [vm] vue实例
+ * @param {Object} child 要合并的数据，比如new Vue()、Vue.extend、Vue.mixin传的参数选项
+ * @param {Component} [vm] vue实例 只在new创建实例时传入，在Vue.extend、Vue.mixin时不传入。如此可使用vm区分是否new创建实例
  * @returns {Object} 返回合并完的数据
  */
 export function mergeOptions (
@@ -590,7 +592,7 @@ export function mergeOptions (
   // 遍历parent，处理各个选项
   for (key in child) {
     if (!hasOwn(parent, key)) {
-      // 子组件独有的选项才处理
+      // child独有的选项才处理
       mergeField(key)
     }
   }

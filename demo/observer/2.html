@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单响应式思路</title>
+</head>
+
+<body>
+查看Console<br/>
+</body>
+<script>
+    const data = {
+        key: 'value',
+        a: {
+            b: 1
+        }
+    }
+
+    function walk(data) {
+        for (const key in data) {
+            if (data.hasOwnProperty(key)) {
+                let val = data[key]
+                const dep = []
+                if (Reflect.toString.call(val) === '[object Object]') {
+                    walk(val)
+                }
+                Object.defineProperty(data, key, {
+                    get() {
+                        Target && dep.push(Target)
+                        return val
+                    },
+                    set(nVal) {
+                        if (nVal === val) {
+                            return
+                        }
+                        const oVal = val
+                        val = nVal
+                        dep.forEach(fn => fn(nVal, oVal))
+                    }
+                })
+            }
+        }
+    }
+    walk(data)
+
+    let Target = null
+    function $watch(exp, fn) {
+        // 将fn赋值给Target使得get函数可以取到
+        Target = fn
+        // 访问属性触发get函数
+        if (typeof exp === 'function') {
+            exp()
+            Target = null
+            return
+        }
+        let obj = data
+        const pathArr = exp.split('.')
+        pathArr.forEach((path) => {
+            obj = obj[path]
+        })
+        Target = null
+    }
+
+    $watch('key', (nVal, oVal) => {
+        console.log('data.key被修改了', nVal, oVal)
+    })
+    $watch('a.b', (nVal, oVal) => {
+        console.log('data.a.b被修改了', nVal, oVal)
+    })
+    const render = () => {
+        document.write(`data.a.b: ${data.a.b} ---- data.key: ${data.key}<br/>`)
+    }
+    $watch(render, render)
+</script>
+
+</html>

@@ -50,6 +50,42 @@
                 </div>`
         }).$mount('#app')
     }
+    function example2() {
+        new Vue({
+            data: new Vue(),
+            template: `<div>
+                <p class="title">data是Vue实例</p>
+                {{_isVue}}
+                </div>`
+        }).$mount('#app')
+    }
+    function example3() {
+        window.data = {
+            tag: ''
+        }
+        Vue.component('hello', {
+            data() {
+                return data
+            },
+            computed: {
+                vmCount() {
+                    return this.$data.__ob__.vmCount
+                }
+            },
+            template: `<div>
+                    {{tag}}hello{{vmCount}}
+                    </div>`
+        })
+        new Vue({
+            data: { title: 'vmCount' },
+            template: `<div>
+                <p class="title">{{title}}</p>
+                <hello />
+                <hello />
+                <hello />
+                </div>`
+        }).$mount('#app')
+    }
     window[`example${location.hash.substring(1)}`]()
 </script>
 

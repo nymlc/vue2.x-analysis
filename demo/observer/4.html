@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>响应式例子</title>
+    <style>
+        .title {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+
+    </div>
+</body>
+<script src="../js/vue.js"></script>
+<script>
+    function example1() {
+        Vue.component('hello', {
+            data() {
+                const VNode = this.$vnode.constructor
+                const vnode = new VNode(
+                    'div', 'vnode', [],
+                    undefined, undefined, this
+                )
+                return vnode
+            },
+            methods: {
+                change() {
+                    console.log('before change', this.tag)
+                    this.tag = 'span'
+                    console.log('after change', this.tag)
+                }
+            },
+            template: `<div>
+                        {{tag}}
+                        <button @click="change">change</button>
+                    </div>`
+        })
+        new Vue({
+            data: { title: 'data是VNode实例' },
+            template: `<div>
+                <p class="title">{{title}}</p>
+                <hello />
+                </div>`
+        }).$mount('#app')
+    }
+    window[`example${location.hash.substring(1)}`]()
+</script>
+
+</html>

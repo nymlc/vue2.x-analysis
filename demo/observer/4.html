@@ -18,7 +18,7 @@
 
     </div>
 </body>
-<script src="../js/vue.js"></script>
+<script src="./vue-bak.js"></script>
 <script>
     function example1() {
         Vue.component('hello', {
@@ -104,7 +104,7 @@
                         get: function() {
                             return this._data[nKey]
                         },
-                        set: function(nVal) {
+                        set: function(val) {
                             this._data[nKey] = val
                         }
                     })
@@ -115,11 +115,25 @@
                     this.$watch('a.c', () => {
                         console.log('a.c change')
                     })
+                },
+                trigger() {
+                    this.nVal = 666
+                    this.a.c = 666
                 }
             },
             template: `<div>
-                <p class="title">给根data设置新属性</p>
+                <p class="title">给根data设置新属性，得注释掉源码这段提示方可</p>
+                <code style="white-space: pre-wrap;">
+if (target._isVue || (ob && ob.vmCount)) {
+    process.env.NODE_ENV !== 'production' && warn(
+        'Avoid adding reactive properties to a Vue instance or its root $data ' +
+        'at runtime - declare it upfront in the data option.'
+    )
+    return val
+}    
+                </code>
                         <button @click="add">add</button>
+                        <button @click="trigger">trigger</button>
                 </div>`
         }).$mount('#app')
     }

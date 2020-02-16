@@ -86,6 +86,43 @@
                 </div>`
         }).$mount('#app')
     }
+    function example4() {
+        window.data = {
+            a: {
+                b: 1
+            }
+        }
+        window.ln = new Vue({
+            data,
+            methods: {
+                add() {
+                    const nKey = 'nVal'
+                    this.$set(this._data, nKey, {})
+                    Object.defineProperty(this, nKey, {
+                        enumerable: true,
+                        configurable: true,
+                        get: function() {
+                            return this._data[nKey]
+                        },
+                        set: function(nVal) {
+                            this._data[nKey] = val
+                        }
+                    })
+                    this.$set(this._data.a, 'c', {})
+                    this.$watch(nKey, () => {
+                        console.log(`${nKey} change`)
+                    })
+                    this.$watch('a.c', () => {
+                        console.log('a.c change')
+                    })
+                }
+            },
+            template: `<div>
+                <p class="title">给根data设置新属性</p>
+                        <button @click="add">add</button>
+                </div>`
+        }).$mount('#app')
+    }
     window[`example${location.hash.substring(1)}`]()
 </script>
 

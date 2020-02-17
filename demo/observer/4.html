@@ -10,6 +10,9 @@
         .title {
             color: red;
         }
+        .tip {
+            color: salmon;
+        }
     </style>
 </head>
 
@@ -18,8 +21,14 @@
 
     </div>
 </body>
-<script src="./vue-bak.js"></script>
+<script id="vuejs" src="./vue-bak.js"></script>
 <script>
+    const loadScript = (url, callback) => {
+        const script = document.createElement('script')
+        script.onload = () => callback()
+        script.src = url
+        document.body.appendChild(script)
+    }
     function example1() {
         Vue.component('hello', {
             data() {
@@ -137,7 +146,132 @@ if (target._isVue || (ob && ob.vmCount)) {
                 </div>`
         }).$mount('#app')
     }
-    window[`example${location.hash.substring(1)}`]()
+    function example5() {
+        const data = {
+            x: {
+                y: 1
+            }
+        }
+        Object.defineProperty(data, 'a', {
+            enumerable: true,
+            configurable: true,
+            get() {
+                return {
+                    b: 1
+                }
+            }
+        })
+        let val = {
+            p: 1
+        }
+        Object.defineProperty(data, 'o', {
+            enumerable: true,
+            configurable: true,
+            get() {
+                return val
+            },
+            set(nVal) {
+                val = nVal
+            }
+        })
+        new Vue({
+            data,
+            watch: {
+                'a.b': {
+                    handler() {
+                        console.log('a.b change.')
+                    }
+                },
+                'x.y': {
+                    handler() {
+                        console.log('x.y change.')
+                    }
+                },
+                'o.p': {
+                    handler() {
+                        console.log('o.p change.')
+                    }
+                }
+            },
+            methods: {
+                change() {
+                    this.a.b = 5
+                    this.x.y = 5
+                    this.o.p = 5
+                }
+            },
+            template: `<div>
+                <p class="title">
+                    data 属性拥有getter
+                </p>
+                <p class="tip">
+                    1. data.a.b是data.a有get访问器属性<br>
+                    2. data.o.p是data.o有get、set访问设置器属性<br>
+                    3. data.x.y是常规的嵌套对象
+                </p>
+                        <button @click="change">change</button>
+                </div>`
+        }).$mount('#app')
+    }
+    function example6() {
+        const data = {}
+        let val = {
+            b: 1
+        }
+        Object.defineProperty(data, 'a', {
+            enumerable: true,
+            configurable: true,
+            get() {
+                return val
+            },
+            set(nVal) {
+                val = nVal
+            }
+        })
+        new Vue({
+            data,
+            watch: {
+                'a.b': {
+                    handler() {
+                        console.log('a.b change.')
+                    }
+                }
+            },
+            methods: {
+                change1() {
+                    this.a.b = 3
+                },
+                add() {
+                    this.a = { c: 3 }
+                    this.$watch('a.c', () => {
+                        console.log('a.c change.')
+                    })
+                },
+                change2() {
+                    this.a.c = 6
+                }
+            },
+            template: `<div>
+                <p class="title">
+                    data.a 属性拥有getter和setter
+                </p>
+                <p class="tip">
+                    a没有深度观测，所以a.b watch没触发<br>
+                    给a赋值，因为新值是对象，a属性被深度观测，所以a.c watch触发
+                </p>
+                <button @click="change1">Change a.b</button>
+                <button @click="add">Add a.c Watch</button>
+                <button @click="change2">Change a.c</button>
+                </div>`
+        }).$mount('#app')
+    }
+    if(location.hash.substring(1) == 6) {
+        loadScript('./vue-bak2.js', () => {
+            example6()
+        })
+    } else {
+        window[`example${location.hash.substring(1)}`]()
+    }
 </script>
 
 </html>

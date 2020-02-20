@@ -265,6 +265,32 @@ if (target._isVue || (ob && ob.vmCount)) {
                 </div>`
         }).$mount('#app')
     }
+    function example7() {
+        window.app = new Vue({
+            data: {
+                a: {
+                    b: 1
+                }
+            },
+            methods: {
+                change() {
+                    this.$set(this.a, 'c', 6)
+                }
+            },
+            watch: {
+                'a.c': function(nVal, oVal) {
+                    console.log(nVal, oVal)
+                },
+                'a.b': function(nVal, oVal) {
+                    console.log(nVal, oVal)
+                }
+            },
+            template: `<div>
+                <p class="title">Vue.set</p>
+                <button @click="change">Change a.c</button>
+                </div>`
+        }).$mount('#app')
+    }
     if(location.hash.substring(1) == 6) {
         loadScript('./vue-bak2.js', () => {
             example6()

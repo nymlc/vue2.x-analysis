@@ -21,6 +21,8 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   // config
   const configDef = {}
   // 常规套路，防止被修改
+  //ø 这也也有个关键点，就是因为对config做了代理，所以设置Vue.config.xxx时候也会影响到../config
+  // 这样子引用../config就会是改变之后的config 
   configDef.get = () => config
   if (process.env.NODE_ENV !== 'production') {
     configDef.set = () => {

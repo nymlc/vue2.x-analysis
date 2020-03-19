@@ -291,6 +291,51 @@ if (target._isVue || (ob && ob.vmCount)) {
                 </div>`
         }).$mount('#app')
     }
+    function example8() {
+        Vue.component('hello', {
+            data() {
+                return {
+                    a: 1
+                }
+            },
+            methods: {
+                change() {
+                    this.$emit('on-hello')
+                },
+                output(args) {
+                    console.error(args)
+                }
+            },
+            created() {
+                this.$on(['on-created', 'on-test1'], this.output)
+            },
+            mounted() {
+                this.$emit('on-created', 'on-created')
+                this.$emit('on-test1', 'on-test')
+            },
+            template: `<div>
+                        {{a}}
+                        <button @click="change">change</button>
+                    </div>`
+        })
+        new Vue({
+            data: { a: 1 },
+            template: `<div>
+                <hello @hook:mounted="listenMounted" @on-hello.passive="onClick" @on-hello="onHello" />
+                </div>`,
+            methods: {
+                listenMounted() {
+                    console.error('listenMounted')
+                },
+                onHello() {
+                    console.error('onHello')
+                },
+                onClick() {
+                    console.error('onClick')
+                }
+            }
+        }).$mount('#app')
+    }
     if(location.hash.substring(1) == 6) {
         loadScript('./vue-bak2.js', () => {
             example6()

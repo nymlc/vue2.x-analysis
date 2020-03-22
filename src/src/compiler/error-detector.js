@@ -4,6 +4,8 @@ import { dirRE, onRE } from './parser/index'
 
 // these keywords should not appear inside expressions, but operators like
 // typeof, instanceof and in are allowed
+// /\bdo\b|\bif\b/
+// 就是这些单词不能出现在模板表达式里
 const prohibitedKeywordRE = new RegExp('\\b' + (
     'do,if,for,let,new,try,var,case,else,with,await,break,catch,class,const,' +
     'super,throw,while,yield,delete,export,import,return,switch,default,' +
@@ -14,7 +16,24 @@ const prohibitedKeywordRE = new RegExp('\\b' + (
 const unaryOperatorsRE = new RegExp('\\b' + (
     'delete,typeof,void'
 ).split(',').join('\\s*\\([^\\)]*\\)|\\b') + '\\s*\\([^\\)]*\\)')
-
+/**剥离字符串，留下表达式，就像
+ * flag{{if}}flag   expression会是    "flag"+_s(if)+"flag"   
+ * 剥离之后就是  +_s(if)+
+ * 
+1. 单引号包裹的字符串，字符串分俩种: 可适配：'\dflag'
+    ①：非'非\
+    ②：\.
+    '(?:[^'\\]|\\.)*'|
+2. 类似第一条，可适配："\dflag"
+    "(?:[^"\\]|\\.)*"|
+3. 类似第一条，只是右边加了${，可适配：`\dflag${
+    `(?:[^`\\]|\\.)*\$\{|
+4. 类似第一条，只是左边加了}，可适配：}\dflag`
+    \}(?:[^`\\]|\\.)*`|
+5. 类似第一条，可适配：`\dflag`
+    `(?:[^`\\]|\\.)*`
+ * 
+*/
 // strip strings in expressions
 const stripStringRE = /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*\$\{|\}(?:[^`\\]|\\.)*`|`(?:[^`\\]|\\.)*`/g
 
@@ -26,7 +45,36 @@ export function detectErrors(ast: ?ASTNode): Array<string> {
     }
     return errors
 }
-
+/**
+ *
+{
+    "type": 1, // 1是元素节点，2是文本节点，3是注释节点
+    "tag": "div",  // 标签
+    "attrsList": [{
+        "name": "id",
+        "value": "app"
+    }], // 属性列表
+    "attrsMap": {
+        "id": "app"
+    }, // 属性map
+    "children": [{
+        "type": 2,
+        "expression": "_s(flag)", // 表达式字符串
+        "tokens": [{
+            "@binding": "flag"
+        }],
+        "text": "{{flag}}", // 文本字符串
+        "static": false
+    }], // 子节点
+    "plain": false,
+    "attrs": [{
+        "name": "id",
+        "value": "\"app\""
+    }],
+    "static": false,
+    "staticRoot": false
+}
+ */
 function checkNode(node: ASTNode, errors: Array<string>) {
     if (node.type === 1) {
         // 若是元素节点
@@ -50,7 +98,7 @@ function checkNode(node: ASTNode, errors: Array<string>) {
             }
         }
     } else if (node.type === 2) {
-        // 若是文本节点
+        // 若是带插值的文本节点
         checkExpression(node.expression, node.text, errors)
     }
 }
@@ -88,18 +136,21 @@ function checkIdentifier(
         }
     }
 }
-
+// 检查表达式是否有问题
 function checkExpression(exp: string, text: string, errors: Array<string>) {
+    // 就是将其转为函数然后看是否会异常
     try {
         new Function(`return ${exp}`)
     } catch (e) {
         const keywordMatch = exp.replace(stripStringRE, '').match(prohibitedKeywordRE)
         if (keywordMatch) {
+            // 若是发现有禁止的关键词就将错误push到errors
             errors.push(
                 `avoid using JavaScript keyword as property name: ` +
                 `"${keywordMatch[0]}"\n  Raw expression: ${text.trim()}`
             )
         } else {
+            // 若是无效的表达式也是不成的
             errors.push(
                 `invalid expression: ${e.message} in\n\n` +
                 `    ${exp}\n\n` +

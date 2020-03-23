@@ -79,19 +79,26 @@ function checkNode(node: ASTNode, errors: Array<string>) {
     if (node.type === 1) {
         // 若是元素节点
         for (const name in node.attrsMap) {
+            // /^v-|^@|^:/
+            // 就是检查下name是否符合v-、@、:开头的，也就是是否是指令
             if (dirRE.test(name)) {
+                // 获取到指令对应的值
                 const value = node.attrsMap[name]
                 if (value) {
                     if (name === 'v-for') {
+                        // 若是v-for
                         checkFor(node, `v-for="${value}"`, errors)
                     } else if (onRE.test(name)) {
+                        // /^@|^v-on:/ 若是事件绑定  @、v-on:
                         checkEvent(value, `${name}="${value}"`, errors)
                     } else {
+                        // 其他属性
                         checkExpression(value, `${name}="${value}"`, errors)
                     }
                 }
             }
         }
+        // 若是有子节点就递归遍历
         if (node.children) {
             for (let i = 0; i < node.children.length; i++) {
                 checkNode(node.children[i], errors)
@@ -102,10 +109,18 @@ function checkNode(node: ASTNode, errors: Array<string>) {
         checkExpression(node.expression, node.text, errors)
     }
 }
-
+/**检查事件是否有问题
+ * 
+ * @param {*} exp delete('Delete')
+ * @param {*} text @click="delete('Delete')"
+ * @param {*} errors 
+ */
 function checkEvent(exp: string, text: string, errors: Array<string>) {
+    // 剥离无关的字符串  得到   delete()
     const stipped = exp.replace(stripStringRE, '')
+    // 匹配是否有一元操作符
     const keywordMatch: any = stipped.match(unaryOperatorsRE)
+    // 若是存在一元操作符且其前一个字符非$就报错：避免在表达式里使用一元操作符
     if (keywordMatch && stipped.charAt(keywordMatch.index - 1) !== '$') {
         errors.push(
             `avoid using JavaScript unary operator as property name: ` +
@@ -114,22 +129,35 @@ function checkEvent(exp: string, text: string, errors: Array<string>) {
     }
     checkExpression(exp, text, errors)
 }
-
+/**
+ * 检测v-for表达式是否有问题   (val, name, index) in list  也就是val、name、index、list是不是符合表达式格式
+ * @param {*} node { for: 'list', alias: 'val', iterator1: 'name', iterator1: 'index' }
+ * @param {*} text v-for="(val, name, index) in list"
+ * @param {*} errors 
+ */
 function checkFor(node: ASTElement, text: string, errors: Array<string>) {
     checkExpression(node.for || '', text, errors)
     checkIdentifier(node.alias, 'v-for alias', text, errors)
     checkIdentifier(node.iterator1, 'v-for iterator', text, errors)
     checkIdentifier(node.iterator2, 'v-for iterator', text, errors)
 }
-
+/**
+ * 检查所给的字符串是否是合适的标识符
+ * @param {*} ident val
+ * @param {*} type v-for alias
+ * @param {*} text v-for="(val, name, index) in list"
+ * @param {*} errors 
+ */
 function checkIdentifier(
     ident: ?string,
     type: string,
     text: string,
     errors: Array<string>
 ) {
+    // 首先所给的标识符得是字符串
     if (typeof ident === 'string') {
         try {
+            // 作为变量是可以声明
             new Function(`var ${ident}=_`)
         } catch (e) {
             errors.push(`invalid ${type} "${ident}" in expression: ${text.trim()}`)
@@ -137,9 +165,12 @@ function checkIdentifier(
     }
 }
 // 检查表达式是否有问题
+// 1. 表达式本身错误
+// 2. 表达式包含禁止使用的关键词，前提是上条，也就是具体下错误信息
 function checkExpression(exp: string, text: string, errors: Array<string>) {
     // 就是将其转为函数然后看是否会异常
     try {
+        // 作为插值是可以return
         new Function(`return ${exp}`)
     } catch (e) {
         const keywordMatch = exp.replace(stripStringRE, '').match(prohibitedKeywordRE)

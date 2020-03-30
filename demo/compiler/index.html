@@ -21,55 +21,5 @@
 
     </div>
 </body>
-<script src="../js/vue.js"></script>
-<script>
-    const loadScript = (url, callback) => {
-        const script = document.createElement('script')
-        script.onload = () => callback()
-        script.src = url
-        document.body.appendChild(script)
-    }
-    function example1() {
-        Vue.component('hello', {
-            data() {
-                return data
-            },
-            computed: {
-                vmCount() {
-                    return this.$data.__ob__.vmCount
-                }
-            },
-            template: `<div>
-                    hello{{vmCount}}
-                    </div>`
-        })
-        new Vue({
-            data: {
-                flag: 1
-            },
-            methods: {
-                change() {
-                    this.flag = !this.flag
-                }
-            },
-            template: `<div @click="change">
-                    <p class="title">编译器多次编译</p>
-                    <div v-if="flag">
-                        {{flag}}
-                    </div>
-                    <div v-else>
-                        <hello />
-                    </div>
-                </div>`
-        }).$mount('#app')
-    }
-    if(location.hash.substring(1) == 6) {
-        loadScript('./vue-bak2.js', () => {
-            example6()
-        })
-    } else {
-        window[`example${location.hash.substring(1) || 1}`]()
-    }
-</script>
-</script>
+<script src="./index.js"></script>
 </html>

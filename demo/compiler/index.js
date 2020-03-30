@@ -76,7 +76,8 @@ function example2() {
             console.error($progress.getAttribute('value'));
             console.error($progress.value);
         },
-        template: '<div><progress id="val" v-bind:value="width" max="100.0">{{width}}</progress>{{width}}</div>'
+        template: '<div><p class="title">mustUseProp的用处，issue6561</p>'+
+        '<progress id="val" v-bind:value="width" max="100.0">{{width}}</progress>{{width}}</div>'
     }).$mount('#app');
 }
 

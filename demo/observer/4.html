@@ -242,13 +242,14 @@ if (target._isVue || (ob && ob.vmCount)) {
                     this.a.b = 3
                 },
                 add() {
-                    this.a = { c: 3 }
+                    this.a = { c: 3, b: 5 }
                     this.$watch('a.c', () => {
                         console.log('a.c change.')
                     })
                 },
                 change2() {
                     this.a.c = 6
+                    this.a.b = 3
                 }
             },
             template: `<div>
@@ -257,11 +258,11 @@ if (target._isVue || (ob && ob.vmCount)) {
                 </p>
                 <p class="tip">
                     a没有深度观测，所以a.b watch没触发<br>
-                    给a赋值，因为新值是对象，a属性被深度观测，所以a.c watch触发
+                    给a赋值，因为新值是对象（含有c b属性），a属性被深度观测，所以a.c a.b watch触发
                 </p>
                 <button @click="change1">Change a.b</button>
                 <button @click="add">Add a.c Watch</button>
-                <button @click="change2">Change a.c</button>
+                <button @click="change2">Change a.c a.b</button>
                 </div>`
         }).$mount('#app')
     }

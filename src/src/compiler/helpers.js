@@ -26,7 +26,14 @@ export function addAttr(el: ASTElement, name: string, value: any) {
     el.plain = false
 }
 
-// add a raw attr (use this in preTransforms)
+/**
+ *添加原生属性
+ *
+ * @export
+ * @param {ASTElement} el 元素对象
+ * @param {string} name 属性名
+ * @param {*} value 属性值
+ */
 export function addRawAttr(el: ASTElement, name: string, value: any) {
     el.attrsMap[name] = value
     el.attrsList.push({ name, value })
@@ -119,7 +126,6 @@ export function addHandler(
 
     el.plain = false
 }
-
 export function getBindingAttr(
     el: ASTElement,
     name: string,

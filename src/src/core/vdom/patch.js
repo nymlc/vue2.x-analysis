@@ -218,8 +218,14 @@ export function createPatchFunction(backend) {
             // it should've created a child instance and mounted it. the child
             // component also has set the placeholder vnode's elm.
             // in that case we can just return the element and be done.
+            // 在调用了init hook之后如果这个vnode是个组件那么就会创建一个子组件实力并且挂载它
+            // 这个子组件也会设置占位vnode的elm属性
+            // 在这种情况下我们可以返回这个element并且返回true，表示这个是组件
             if (isDef(vnode.componentInstance)) {
+                // 若是组件实例存在那说明必然是组件了
+                // 初始化组件
                 initComponent(vnode, insertedVnodeQueue)
+                // 将组件的elm真实节点插入到父节点
                 insert(parentElm, vnode.elm, refElm)
                 if (isTrue(isReactivated)) {
                     reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm)
@@ -692,8 +698,12 @@ export function createPatchFunction(backend) {
         const insertedVnodeQueue = []
 
         if (isUndef(oldVnode)) {
+            // oldVnode为空也就是空挂载，就像是组件，组件挂载oldVnode就是空的，因为vm.$el是空的
+            //ø 值得注意的是这里vnode是组件真实的节点，不是占位节点
             // empty mount (likely as component), create new root element
             isInitialPatch = true
+            // 这里只传了俩参数，这样子就不会插入到其它节点下，也就是创建一个根节点
+            //ø 这么做就不会在创建这个组件节点时把它插入到其父节点，等组件树完了一起插入到父节点
             createElm(vnode, insertedVnodeQueue)
         } else {
             const isRealElement = isDef(oldVnode.nodeType)

@@ -160,6 +160,7 @@ export function createPatchFunction(backend) {
         const children = vnode.children
         const tag = vnode.tag
         if (isDef(tag)) {
+            // 有tag的话说明是元素节点，组件节点在之前的createComponent就给处理了
             if (process.env.NODE_ENV !== 'production') {
                 if (data && data.pre) {
                     creatingElmInVPre++
@@ -173,7 +174,7 @@ export function createPatchFunction(backend) {
                     )
                 }
             }
-
+            // 这里就是创建真实dom，看命名空间情况调用
             vnode.elm = vnode.ns
                 ? nodeOps.createElementNS(vnode.ns, tag)
                 : nodeOps.createElement(tag, vnode)
@@ -199,10 +200,13 @@ export function createPatchFunction(backend) {
                     insert(parentElm, vnode.elm, refElm)
                 }
             } else {
+                // 这个就是遍历创建它的子节点
                 createChildren(vnode, children, insertedVnodeQueue)
+
                 if (isDef(data)) {
                     invokeCreateHooks(vnode, insertedVnodeQueue)
                 }
+                // 将创建的节点插入父节点
                 insert(parentElm, vnode.elm, refElm)
             }
 
@@ -210,9 +214,11 @@ export function createPatchFunction(backend) {
                 creatingElmInVPre--
             }
         } else if (isTrue(vnode.isComment)) {
+            // 如果是注释节点就直接创建插入
             vnode.elm = nodeOps.createComment(vnode.text)
             insert(parentElm, vnode.elm, refElm)
         } else {
+            // 既不是元素节点也不是注释，那必然是文本节点，创建插入即可
             vnode.elm = nodeOps.createTextNode(vnode.text)
             insert(parentElm, vnode.elm, refElm)
         }
@@ -297,16 +303,24 @@ export function createPatchFunction(backend) {
             }
         }
     }
-
+    /**
+     * 创建子节点
+     * @param {*} vnode 
+     * @param {*} children 
+     * @param {*} insertedVnodeQueue 
+     */
     function createChildren(vnode, children, insertedVnodeQueue) {
         if (Array.isArray(children)) {
+            // 这个就是key不能重复
             if (process.env.NODE_ENV !== 'production') {
                 checkDuplicateKeys(children)
             }
+            // 遍历children创建其子节点，注意传参
             for (let i = 0; i < children.length; ++i) {
                 createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i)
             }
         } else if (isPrimitive(vnode.text)) {
+            // 是否是原始值
             nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)))
         }
     }
@@ -317,7 +331,11 @@ export function createPatchFunction(backend) {
         }
         return isDef(vnode.tag)
     }
-
+    /**
+     * 执行创建hook
+     * @param {*} vnode 
+     * @param {*} insertedVnodeQueue 
+     */
     function invokeCreateHooks(vnode, insertedVnodeQueue) {
         for (let i = 0; i < cbs.create.length; ++i) {
             cbs.create[i](emptyNode, vnode)
@@ -489,7 +507,7 @@ export function createPatchFunction(backend) {
             removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
         }
     }
-
+    // 就是检查重复key
     function checkDuplicateKeys(children) {
         const seenKeys = {}
         for (let i = 0; i < children.length; i++) {
@@ -717,8 +735,10 @@ export function createPatchFunction(backend) {
             //ø 这么做就不会在创建这个组件节点时把它插入到其父节点，等组件树完了一起插入到父节点
             createElm(vnode, insertedVnodeQueue)
         } else {
+            // 判断是否是真实节点，是的话会有nodeType
             const isRealElement = isDef(oldVnode.nodeType)
             if (!isRealElement && sameVnode(oldVnode, vnode)) {
+                // 如果旧节点不是真实节点而且新旧节点相似
                 // patch existing root node
                 patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
             } else {

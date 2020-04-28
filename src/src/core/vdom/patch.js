@@ -121,7 +121,16 @@ export function createPatchFunction(backend) {
     }
 
     let creatingElmInVPre = 0
-
+    /**
+     * 创建节点
+     * @param {*} vnode 
+     * @param {*} insertedVnodeQueue 
+     * @param {*} parentElm 
+     * @param {*} refElm 
+     * @param {*} nested 
+     * @param {*} ownerArray 如果vnode来源于某个vnode数组，那么该参数就是该数组（eg: vnode是vnodeParent.children某一项，那么ownerArray就是vnodeParent.children）
+     * @param {*} index vnode在ownerArray中的索引
+     */
     function createElm(
         vnode,
         insertedVnodeQueue,
@@ -131,6 +140,8 @@ export function createPatchFunction(backend) {
         ownerArray,
         index
     ) {
+        // 如果该vnode存在真实DOM节点而且ownerArray也存在，则代表它在之前的渲染中用过。
+        // 而现在要被用作新节点时有潜在的错误，所以将它改为从本身克隆的节点
         if (isDef(vnode.elm) && isDef(ownerArray)) {
             // This vnode was used in a previous render!
             // now it's used as a new node, overwriting its elm would cause

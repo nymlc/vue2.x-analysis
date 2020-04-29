@@ -324,8 +324,13 @@ export function createPatchFunction(backend) {
             nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)))
         }
     }
-
+    /**
+     * 就是判断这个vnode是不是一个元素节点
+     * 假设一个节点跳过v-if空了，这时候剩下来的就是个注释节点<!---->，那么这个就不能调用执行它的update、create一些hook
+     * @param {*} vnode 
+     */
     function isPatchable(vnode) {
+        // 要是是个组件占位节点那么就得判断它的真实节点，所以需要遍历取.componentInstance._vnode
         while (vnode.componentInstance) {
             vnode = vnode.componentInstance._vnode
         }
@@ -529,15 +534,23 @@ export function createPatchFunction(backend) {
     function findIdxInOld(node, oldCh, start, end) {
         for (let i = start; i < end; i++) {
             const c = oldCh[i]
-            if (isDef(c) && sameVnode(node, c)) return i
+            if (isDef(c) && sameVnode(node, c)) return i    
         }
     }
-
+    /**
+     * 修补vnode，到这里新旧节点必然是相似节点，也就是可以更新节点属性及其内容
+     * 
+     * @param {*} oldVnode 
+     * @param {*} vnode 
+     * @param {*} insertedVnodeQueue 
+     * @param {*} removeOnly 
+     */
     function patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly) {
         if (oldVnode === vnode) {
+            // 俩节点都一样了自然不用比对了
             return
         }
-
+        // 这里就死新的节点dom沿用旧的
         const elm = vnode.elm = oldVnode.elm
 
         if (isTrue(oldVnode.isAsyncPlaceholder)) {
@@ -570,24 +583,33 @@ export function createPatchFunction(backend) {
 
         const oldCh = oldVnode.children
         const ch = vnode.children
+        // 要是data存在（hook在data上）并且是个元素节点那么就调用update hook，包括全局和节点钩子
         if (isDef(data) && isPatchable(vnode)) {
             for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
             if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
         }
+        // 要是新节点没有文本内容
         if (isUndef(vnode.text)) {
+            // 要是新旧节点都有子节点而且不一样就调用updateChildren处理
             if (isDef(oldCh) && isDef(ch)) {
                 if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
-            } else if (isDef(ch)) {
+            } else if (isDef(ch)) { // 要是新节点存在
+                // 旧节点文本内容存在，那么自然得把旧节点内容去掉
                 if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
+                // 添加新节点
                 addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
             } else if (isDef(oldCh)) {
+                // 新节点不存在子节点，旧节点存在，那么就得干掉旧节点子节点
                 removeVnodes(elm, oldCh, 0, oldCh.length - 1)
             } else if (isDef(oldVnode.text)) {
+                // 这个就是新旧节点都不存在子节点，旧节点文本内容存在，那么就是去掉节点文本内容
                 nodeOps.setTextContent(elm, '')
             }
         } else if (oldVnode.text !== vnode.text) {
+            // 要是新节点有文本内容而且和旧文本内容不一致，更新下就是了
             nodeOps.setTextContent(elm, vnode.text)
         }
+        // 执行下这个节点的postpatch hook
         if (isDef(data)) {
             if (isDef(i = data.hook) && isDef(i = i.postpatch)) i(oldVnode, vnode)
         }
@@ -735,6 +757,7 @@ export function createPatchFunction(backend) {
             //ø 这么做就不会在创建这个组件节点时把它插入到其父节点，等组件树完了一起插入到父节点
             createElm(vnode, insertedVnodeQueue)
         } else {
+            // 这里就不是空挂载了
             // 判断是否是真实节点，是的话会有nodeType
             const isRealElement = isDef(oldVnode.nodeType)
             if (!isRealElement && sameVnode(oldVnode, vnode)) {
@@ -742,6 +765,7 @@ export function createPatchFunction(backend) {
                 // patch existing root node
                 patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
             } else {
+                // 旧节点是真实节点或者新旧节点不相似
                 if (isRealElement) {
                     // mounting to a real element
                     // check if this is server-rendered content and if we can perform
@@ -772,7 +796,7 @@ export function createPatchFunction(backend) {
                 // replacing existing element
                 const oldElm = oldVnode.elm
                 const parentElm = nodeOps.parentNode(oldElm)
-
+                // 这个就是创建新节点，主要是第三参，判断下是否在离开transition，是的话就不插入
                 // create new node
                 createElm(
                     vnode,
@@ -783,8 +807,9 @@ export function createPatchFunction(backend) {
                     oldElm._leaveCb ? null : parentElm,
                     nodeOps.nextSibling(oldElm)
                 )
-
+                
                 // update parent placeholder node element, recursively
+                // vnode.parent存在就说明它是个组件占位节点
                 if (isDef(vnode.parent)) {
                     let ancestor = vnode.parent
                     const patchable = isPatchable(vnode)

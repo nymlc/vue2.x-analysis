@@ -24,22 +24,90 @@ function getQueryString(name) {
 }
 
 function example1() {
-    let vm = new Vue({
+    const lifecycles = ['beforeCreate', 'created', 'beforeMount', 'mounted', 'beforeUpdate', 'updated', 'activated', 'deactivated', 'beforeDestroy', 'destroyed']
+    function createComponent(tag) {
+        const comp = {
+            template: `<div>comp-${tag}</div>`
+        }
+        lifecycles.forEach(itm => {
+            comp[itm] = function () {
+                console.error(`comp-${tag}  ${itm}`)
+            }
+        })
+        return comp
+    }
+    window.ln = new Vue({
         el: '#app',
         components: {
-            comp: {
-                template: `<section></section>`
-            }
+            compa: createComponent('a'),
+            compb: createComponent('b')
         },
-        template: `<div><comp/></div>`
+        data: {
+            type: true
+        },
+        mounted() {
+            setTimeout(() => {
+                this.type = false
+            }, 4000)
+        },
+        template: `<div>
+            <component v-if="type" is="compa" />
+            <component v-else is="compb" />
+        </div>`
     })
 }
 
+function example2() {
+    loadScript('https://unpkg.com/vue-virtual-scroll-list@1.2.2/index.js', function () {
+        Vue.component('VirtualList', VirtualScrollList);
+        new Vue({
+            template: `<div>
+            <virtual-list :size="50" :remain="10" :klass="'list'">
+                <item v-for="(udf, index) of items" :index="index" :key="index" />
+            </virtual-list>
+        </div>`,
+            el: '#app',
+            components: {
+                item: {
+                    props: ['index'],
+                    template: `<div style="height:50px;border-bottom: 1px solid #eee;">
+                        index: {{index}}
+                    </div>`
+                }
+            },
+            data: function () {
+                return {
+                    items: new Array(100000)
+                }
+            }
+        })
+    })
+}
+function example3() {
+    window.ln = new Vue({
+        el: '#app',
+        template: `
+          <div>
+            <test class="test"></test>
+          </div>
+        `,
+        components: {
+            test: {
+                data() {
+                    return { ok: true }
+                },
+                template: '<div v-if="ok" id="ok" class="inner">test</div>'
+            }
+        }
+    })
+
+}
+
 var version = getQueryString('v') || '../js/vue.js';
-var index = location.hash.substring(1) || 1;
+var index = getQueryString('e') || 1;
 
 if (version) {
     loadScript(+version.charAt(0) ? 'https://cdn.bootcss.com/vue/' + version + '/vue.js' : version, function () {
-        window["example".concat(index)]();
+        window["example" + index]();
     })
 }

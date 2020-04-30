@@ -85,7 +85,11 @@ export function createPatchFunction(backend) {
     function emptyNodeAt(elm) {
         return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
     }
-
+    /**
+     * 创建一个删除回调，比如transition，得等动效过了才能删除
+     * @param {*} childElm 
+     * @param {*} listeners 
+     */
     function createRmCb(childElm, listeners) {
         function remove() {
             if (--remove.listeners === 0) {
@@ -95,9 +99,13 @@ export function createPatchFunction(backend) {
         remove.listeners = listeners
         return remove
     }
-
+    /**
+     * 移除节点
+     * @param {*} el 
+     */
     function removeNode(el) {
         const parent = nodeOps.parentNode(el)
+        // 节点可能已经被移除了，所以得判断下这个父节点存在否，存在的话才移除
         // element may have already been removed due to v-html / v-text
         if (isDef(parent)) {
             nodeOps.removeChild(parent, el)
@@ -251,7 +259,11 @@ export function createPatchFunction(backend) {
             }
         }
     }
-
+    /**
+     * 初始化组件，
+     * @param {*} vnode 
+     * @param {*} insertedVnodeQueue 
+     */
     function initComponent(vnode, insertedVnodeQueue) {
         if (isDef(vnode.data.pendingInsert)) {
             insertedVnodeQueue.push.apply(insertedVnodeQueue, vnode.data.pendingInsert)
@@ -377,70 +389,102 @@ export function createPatchFunction(backend) {
             nodeOps.setStyleScope(vnode.elm, i)
         }
     }
-
+    
     function addVnodes(parentElm, refElm, vnodes, startIdx, endIdx, insertedVnodeQueue) {
         for (; startIdx <= endIdx; ++startIdx) {
             createElm(vnodes[startIdx], insertedVnodeQueue, parentElm, refElm, false, vnodes, startIdx)
         }
     }
-
+    // 执行destroy钩子，包括其子节点
     function invokeDestroyHook(vnode) {
         let i, j
         const data = vnode.data
+        // 要是有数据的话那么就需要执行hook
         if (isDef(data)) {
             if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode)
             for (i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i](vnode)
         }
+        // 要是有子节点的话就得遍历递归执行
         if (isDef(i = vnode.children)) {
             for (j = 0; j < vnode.children.length; ++j) {
                 invokeDestroyHook(vnode.children[j])
             }
         }
     }
-
+    /**
+     * 删除节点
+     * @param {*} parentElm 父节点，这里可以不传，因为可以通过parentNode获取
+     * @param {*} vnodes 要删除的节点列表
+     * @param {*} startIdx 删除的起始索引，也就是给的数组可能只会删除某几项
+     * @param {*} endIdx 删除的结束索引
+     */
     function removeVnodes(parentElm, vnodes, startIdx, endIdx) {
         for (; startIdx <= endIdx; ++startIdx) {
             const ch = vnodes[startIdx]
             if (isDef(ch)) {
                 if (isDef(ch.tag)) {
+                    // 元素节点的话就调用removeAndInvokeRemoveHook
                     removeAndInvokeRemoveHook(ch)
+                    // 执行destroy钩子
                     invokeDestroyHook(ch)
                 } else { // Text node
+                    // 文本节点的话就没有hook需要调用了，直接删掉就是了
                     removeNode(ch.elm)
                 }
             }
         }
     }
-
+    /**
+     * 移除节点且只需remove hook
+     * @param {*} vnode 要移除的节点
+     * @param {*} rm 真正移除节点的回调函数
+     */
     function removeAndInvokeRemoveHook(vnode, rm) {
+        // 首先判断下是否有rm或者vnode.data
+        // 前者是移除回调，得执行它才能移除节点
+        //ø 后者是得判断下是否有节点数据，也得判断下，有数据全局钩子才有用武之地，而且节点钩子也在vnode.data上
         if (isDef(rm) || isDef(vnode.data)) {
             let i
+            // 判断下这个remove hook的长度，+1是因为vnode.data.hook.remove
             const listeners = cbs.remove.length + 1
             if (isDef(rm)) {
+                // rm有值的话必然是处理子组件的时候递归传入的，所以我得加上子组件的remove hook的长度
                 // we have a recursively passed down rm callback
                 // increase the listeners count
                 rm.listeners += listeners
             } else {
+                // 创建一个rm
                 // directly removing
                 rm = createRmCb(vnode.elm, listeners)
             }
+            //ø 递归处理子组件，值得注意的是因为传入了rm，所以移除的还是本节点，递归处理只是处理子组件的hook，节点移除只需要移除本节点就行了，子组件会直接被移掉
             // recursively invoke hooks on child component root node
             if (isDef(i = vnode.componentInstance) && isDef(i = i._vnode) && isDef(i.data)) {
                 removeAndInvokeRemoveHook(i, rm)
             }
+            // 执行全局的remove hook，处理各种属性数据，注意这里面会执行rm
             for (i = 0; i < cbs.remove.length; ++i) {
                 cbs.remove[i](vnode, rm)
             }
+            // 执行节点 remove hook，没有的话执行rm，这样子无论节点remove hook是否存在都能执行rm，这样子之前的+1就ok了
             if (isDef(i = vnode.data.hook) && isDef(i = i.remove)) {
                 i(vnode, rm)
             } else {
                 rm()
             }
         } else {
+            // 既没有移除回调也没有节点数据就直接移除节点就是了，因为就是不需要钩子处理
             removeNode(vnode.elm)
         }
     }
-
+    /**
+     * 
+     * @param {*} parentElm 
+     * @param {*} oldCh 
+     * @param {*} newCh 
+     * @param {*} insertedVnodeQueue 
+     * @param {*} removeOnly 
+     */
     function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
         let oldStartIdx = 0
         let newStartIdx = 0
@@ -577,6 +621,7 @@ export function createPatchFunction(backend) {
 
         let i
         const data = vnode.data
+        // 调用节点prepatch hook，就是预修补钩子
         if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
             i(oldVnode, vnode)
         }
@@ -609,12 +654,12 @@ export function createPatchFunction(backend) {
             // 要是新节点有文本内容而且和旧文本内容不一致，更新下就是了
             nodeOps.setTextContent(elm, vnode.text)
         }
-        // 执行下这个节点的postpatch hook
+        // 执行下这个节点的postpatch hook，也就是修补完毕的钩子
         if (isDef(data)) {
             if (isDef(i = data.hook) && isDef(i = i.postpatch)) i(oldVnode, vnode)
         }
     }
-
+    
     function invokeInsertHook(vnode, queue, initial) {
         // delay insert hooks for component root nodes, invoke them after the
         // element is really inserted
@@ -746,6 +791,7 @@ export function createPatchFunction(backend) {
         }
 
         let isInitialPatch = false
+        // 这个就是插入节点时候需要触发insert hook时候但是这个插入真的插入到
         const insertedVnodeQueue = []
 
         if (isUndef(oldVnode)) {
@@ -759,13 +805,16 @@ export function createPatchFunction(backend) {
         } else {
             // 这里就不是空挂载了
             // 判断是否是真实节点，是的话会有nodeType
+            //ø 注意这里真实节点是oldVnode整个对象是真实节点而不是它上面挂载的elm是真实节点，也就是它不是VNode类型
             const isRealElement = isDef(oldVnode.nodeType)
             if (!isRealElement && sameVnode(oldVnode, vnode)) {
-                // 如果旧节点不是真实节点而且新旧节点相似
+                // 如果旧节点不是真实节点而且新旧节点相似就调用patchVnode
+                //ø 到这里就得保证新旧节点是相似的，所以得剔除旧节点是真实节点（新节点必然是vnode），因为真实节点和vnode就不是一个描述规则
+                // 举个简单例子，这个 patchVnode里的const elm = vnode.elm = oldVnode.elm这个就取不到，因为真实节点就没有elm这个属性
                 // patch existing root node
                 patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
             } else {
-                // 旧节点是真实节点或者新旧节点不相似
+                // 旧节点是真实节点或者新旧节点不相似（其实就是新旧节点不相似）
                 if (isRealElement) {
                     // mounting to a real element
                     // check if this is server-rendered content and if we can perform
@@ -796,7 +845,7 @@ export function createPatchFunction(backend) {
                 // replacing existing element
                 const oldElm = oldVnode.elm
                 const parentElm = nodeOps.parentNode(oldElm)
-                // 这个就是创建新节点，主要是第三参，判断下是否在离开transition，是的话就不插入
+                // 这个就是创建新节点，主要是第三参，判断下是否在离开之类动画状态（transition），是的话就不插入
                 // create new node
                 createElm(
                     vnode,

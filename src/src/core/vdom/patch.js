@@ -594,7 +594,7 @@ export function createPatchFunction(backend) {
             // 俩节点都一样了自然不用比对了
             return
         }
-        // 这里就死新的节点dom沿用旧的
+        // 这里就是新的节点dom沿用旧的
         const elm = vnode.elm = oldVnode.elm
 
         if (isTrue(oldVnode.isAsyncPlaceholder)) {
@@ -633,13 +633,13 @@ export function createPatchFunction(backend) {
             for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
             if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
         }
-        // 要是新节点没有文本内容
+        // 要是新节点不是文本节点，也就是元素节点
         if (isUndef(vnode.text)) {
             // 要是新旧节点都有子节点而且不一样就调用updateChildren处理
             if (isDef(oldCh) && isDef(ch)) {
                 if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
-            } else if (isDef(ch)) { // 要是新节点存在
-                // 旧节点文本内容存在，那么自然得把旧节点内容去掉
+            } else if (isDef(ch)) { // 要是新子节点存在
+                // 旧节点是文本节点，那么自然得把旧节点内容去掉
                 if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
                 // 添加新节点
                 addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
@@ -647,11 +647,11 @@ export function createPatchFunction(backend) {
                 // 新节点不存在子节点，旧节点存在，那么就得干掉旧节点子节点
                 removeVnodes(elm, oldCh, 0, oldCh.length - 1)
             } else if (isDef(oldVnode.text)) {
-                // 这个就是新旧节点都不存在子节点，旧节点文本内容存在，那么就是去掉节点文本内容
+                // 这个就是新旧节点都不存在子节点，旧节点是文本节点，那么就是去掉节点文本内容
                 nodeOps.setTextContent(elm, '')
             }
         } else if (oldVnode.text !== vnode.text) {
-            // 要是新节点有文本内容而且和旧文本内容不一致，更新下就是了
+            // 要是新节点是文本节点而且和旧文本内容不一致，更新下就是了
             nodeOps.setTextContent(elm, vnode.text)
         }
         // 执行下这个节点的postpatch hook，也就是修补完毕的钩子

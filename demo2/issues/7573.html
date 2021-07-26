@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        {{ name }}
+        <button @click="onClick">click</button>
+        <people :name="name"></people>
+    </div>
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.5.7/vue.js"></script>
+    <!-- <script>
+        let Child = {
+            name: 'child',
+            template: '<div><span>{{ localMsg }}</span><button @click="change">click</button></div>',
+            data: function () {
+                return {
+                    localMsg: this.msg
+                }
+            },
+            props: {
+                msg: String
+            },
+            methods: {
+                change() {
+                    this.$emit('update:msg', 'world')
+                }
+            }
+        }
+
+        new Vue({
+            el: '#app',
+            template: '<child :msg.sync="msg"></child>',
+            beforeUpdate() {
+                alert('update twice')
+            },
+            data() {
+                return {
+                    msg: 'hello'
+                }
+            },
+            components: {
+                Child
+            }
+        })
+    </script> -->
+    <script>
+        Vue.component('people', {
+            props: {
+                name: {
+                    type: String,
+                    default: 'Tom'
+                }
+            },
+            data() {
+                return {
+                    myName: `my name is ${this.name}`
+                }
+            },
+            created() {
+                console.error('child update')
+            },
+            template: `<div>
+                    component: {{myName}}
+                </div>`
+        })
+        app = new Vue({
+            el: '#app',
+            beforeUpdate() {
+                alert('update twice')
+            },
+            data: {
+                name: `Jerry`
+            },
+            methods: {
+                onClick() {
+                    this.name = `${Math.random()}`
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>

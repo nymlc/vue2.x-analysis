@@ -15,52 +15,17 @@
         <people :name="name"></people>
     </div>
     <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.5.7/vue.js"></script>
-    <!-- <script>
-        let Child = {
-            name: 'child',
-            template: '<div><span>{{ localMsg }}</span><button @click="change">click</button></div>',
-            data: function () {
-                return {
-                    localMsg: this.msg
-                }
-            },
-            props: {
-                msg: String
-            },
-            methods: {
-                change() {
-                    this.$emit('update:msg', 'world')
-                }
-            }
-        }
-
-        new Vue({
-            el: '#app',
-            template: '<child :msg.sync="msg"></child>',
-            beforeUpdate() {
-                alert('update twice')
-            },
-            data() {
-                return {
-                    msg: 'hello'
-                }
-            },
-            components: {
-                Child
-            }
-        })
-    </script> -->
     <script>
         Vue.component('people', {
             props: {
                 name: {
                     type: String,
-                    default: 'Tom'
+                    default: 'Tom'  // dep.id = 6
                 }
             },
             data() {
                 return {
-                    myName: `my name is ${this.name}`
+                    myName: `my name is ${this.name}` // dep.id = 8
                 }
             },
             created() {
@@ -76,7 +41,7 @@
                 alert('update twice')
             },
             data: {
-                name: `Jerry`
+                name: `Jerry`  // dep.id = 3
             },
             methods: {
                 onClick() {
